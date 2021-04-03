@@ -47,7 +47,7 @@ def LagrangeInterpolate(wav_segment, zstart, zend):
 #####################################################################################
 
 # input24.wav is 24bit signed pcm, input16 is signed 16 bit, input8 is unsigned 8bit
-input_wav = 'input24.wav'
+input_wav = 'NATEST24.wav'
 
 # Get the wave file data
 samplerate, wav = wavfile.read(input_wav)
