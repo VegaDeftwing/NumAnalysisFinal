@@ -1,7 +1,9 @@
 #!/bin/python
+import sympy
 from scipy.io import wavfile
 import scipy.io
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import interp1d
 import numpy as np
 from rich import print
 import pretty_errors
@@ -14,9 +16,9 @@ from matplotlib import pyplot as plt
 #####################################################################################
 
 # number of samples that will be 0'd out and replaced with the interpolated 'guess'
-length_to_interpolate = 100
+length_to_interpolate = 50
 # number of samples used to 'learn' the interpolation, half forwards, half backwards
-samples_to_injest = 1000
+samples_to_injest = 30
 
 #####################################################################################
 # DEFINE THE INTERPOLATION FUNCTIONS
@@ -37,44 +39,50 @@ samples_to_injest = 1000
 def LinearInterpolate(samples_to_injest, zstart, zend):
     print("Running Linear Spline Interpolation")
 
-    linearWav = np.copy(wav)
-    linearWav[zstart:zend,:] = 0 
-    if type(wav[0,0]) is np.int32:
-        print("32bit internally, LSB's are off by a byte, Interpolation will only be over the 24 valid bits")
-        #TODO interpolation function with byte compensation
-    else:
-        print(f"{type(wav[0,0])} internally, Interpolation can procede as normal")
-        #TODO interpolation function, running normally
+    xp1 = np.arange(0,samples_to_injest/2,1)
+    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
+    xp  = np.concatenate((xp1,xp2))
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
+    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp  = np.concatenate((yp1,yp2))
+    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    interp = interp1d(xp,yp, kind='linear')
+    lazyWav = np.copy(wav)
+    lazyWav[zstart:zend,0] = interp(xn)
 
-    return linearWav
+    return lazyWav
 
 def QuadInterpolate(samples_to_injest, zstart, zend):
     print("Running Quadratic Spline Interpolation")
 
-    quadWav = np.copy(wav)
-    quadWav[zstart:zend,:] = 0 
-    if type(wav[0,0]) is np.int32:
-        print("32bit internally, LSB's are off by a byte, Interpolation will only be over the 24 valid bits")
-        #TODO interpolation function with byte compensation
-    else:
-        print(f"{type(wav[0,0])} internally, Interpolation can procede as normal")
-        #TODO interpolation function, running normally
+    xp1 = np.arange(0,samples_to_injest/2,1)
+    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
+    xp  = np.concatenate((xp1,xp2))
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
+    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp  = np.concatenate((yp1,yp2))
+    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    interp = interp1d(xp,yp, kind='quadratic')
+    lazyWav = np.copy(wav)
+    lazyWav[zstart:zend,0] = interp(xn)
 
-    return quadWav
+    return lazyWav
 
 def RCubeInterpolate(samples_to_injest, zstart, zend):
     print("Running R Cubic Spline Interpolation")
 
-    rCubeWav = np.copy(wav)
-    rCubeWav[zstart:zend,:] = 0
-    if type(wav[0,0]) is np.int32:
-        print("32bit internally, LSB's are off by a byte, Interpolation will only be over the 24 valid bits")
-        #TODO interpolation function with byte compensation
-    else:
-        print(f"{type(wav[0,0])} internally, Interpolation can procede as normal")
-        #TODO interpolation function, running normally
+    xp1 = np.arange(0,samples_to_injest/2,1)
+    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
+    xp  = np.concatenate((xp1,xp2))
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
+    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp  = np.concatenate((yp1,yp2))
+    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    interp = interp1d(xp,yp, kind='cubic')
+    lazyWav = np.copy(wav)
+    lazyWav[zstart:zend,0] = interp(xn)
 
-    return rCubeWav
+    return lazyWav
 
 #####################################################################################
 # MAIN
@@ -98,21 +106,11 @@ def PlotWavs(length, start, end, mainWav, linearWav, quadWav, rCubeWav):
     axs[1,1].set_title("R-Cubic Spline Interpolation")
     axs[1,1].plot(x, rCubeWav[start-extra_space:end+extra_space,0], 'tab:red')
 
-    # Establish a baseline using built in fuction
-    # This shows that most interpolations will give at least a phase shift.
-    xp1 = np.arange(0,samples_to_injest/2,1)
-    xp2 = np.arange(length+samples_to_injest,length+samples_to_injest+samples_to_injest/2)
-    xp  = np.concatenate((xp1,xp2))
-    yp1 = mainWav[int(start - samples_to_injest/2):start,0]
-    yp2 = mainWav[end:int(end + samples_to_injest/2),0]
-    yp  = np.concatenate((yp1,yp2))
-    xn = np.arange(length/2,length/2+length,1)
-    interp = CubicSpline(xp,yp)
-    lazyWav = np.copy(wav)
-    lazyWav[start:end,0] = interp(xn)
-    axs[2,0].set_title("Interpolation using SciPy Cubic Spline, baseline")
-    axs[2,0].plot(x, lazyWav[start-extra_space:end+extra_space,0], 'tab:blue')
-    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-lazyWav[start-extra_space:end+extra_space,0], 'tab:orange') 
+    # Multi Graph Comparison
+    axs[2,0].set_title("Compare all splines")
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-quadWav[start-extra_space:end+extra_space,0], 'tab:green')
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-linearWav[start-extra_space:end+extra_space,0], 'tab:orange')
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-rCubeWav[start-extra_space:end+extra_space,0], 'tab:red')
 
     #resulting difference
     axs[2,1].set_title("Linear Spline Interpolation Difference")
