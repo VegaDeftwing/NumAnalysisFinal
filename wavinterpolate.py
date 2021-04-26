@@ -16,9 +16,11 @@ from matplotlib import pyplot as plt
 #####################################################################################
 
 # number of samples that will be 0'd out and replaced with the interpolated 'guess'
-length_to_interpolate = 50
+length_to_interpolate = 100
 # number of samples used to 'learn' the interpolation, half forwards, half backwards
-samples_to_injest = 30
+samples_to_injest = 200
+
+assert (samples_to_injest%2==0),"Samples to injest must be an even number!"
 
 #####################################################################################
 # DEFINE THE INTERPOLATION FUNCTIONS
@@ -42,13 +44,13 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
     xp1 = np.arange(0,samples_to_injest/2,1)
     xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
     xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
-    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
+    yp2 = wav[zend:int(zend + samples_to_injest/2)]
     yp  = np.concatenate((yp1,yp2))
     xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
     interp = interp1d(xp,yp, kind='linear')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend,0] = interp(xn)
+    lazyWav[zstart:zend] = interp(xn)
 
     return lazyWav
 
@@ -58,13 +60,13 @@ def QuadInterpolate(samples_to_injest, zstart, zend):
     xp1 = np.arange(0,samples_to_injest/2,1)
     xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
     xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
-    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
+    yp2 = wav[zend:int(zend + samples_to_injest/2)]
     yp  = np.concatenate((yp1,yp2))
     xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
     interp = interp1d(xp,yp, kind='quadratic')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend,0] = interp(xn)
+    lazyWav[zstart:zend] = interp(xn)
 
     return lazyWav
 
@@ -74,13 +76,13 @@ def RCubeInterpolate(samples_to_injest, zstart, zend):
     xp1 = np.arange(0,samples_to_injest/2,1)
     xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
     xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart,0]
-    yp2 = wav[zend:int(zend + samples_to_injest/2),0]
+    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
+    yp2 = wav[zend:int(zend + samples_to_injest/2)]
     yp  = np.concatenate((yp1,yp2))
     xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
     interp = interp1d(xp,yp, kind='cubic')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend,0] = interp(xn)
+    lazyWav[zstart:zend] = interp(xn)
 
     return lazyWav
 
@@ -96,29 +98,29 @@ def PlotWavs(length, start, end, mainWav, linearWav, quadWav, rCubeWav):
     x = np.arange(0,length+extra_space*2,1)
     #base waveform
     axs[0,0].set_title("Input Waveform")
-    axs[0,0].plot(x, mainWav[start-extra_space:end+extra_space,0])
+    axs[0,0].plot(x, mainWav[start-extra_space:end+extra_space])
     axs[0,0].axvspan(extra_space, length+extra_space, color='red', alpha=.1)
     #interpolated waveforms
     axs[0,1].set_title("Linear Spline Interpolation")
-    axs[0,1].plot(x, linearWav[start-extra_space:end+extra_space,0], 'tab:orange')
+    axs[0,1].plot(x, linearWav[start-extra_space:end+extra_space], 'tab:orange')
     axs[1,0].set_title("Quadratic Spline Interpolation")
-    axs[1,0].plot(x, quadWav[start-extra_space:end+extra_space,0], 'tab:green')
+    axs[1,0].plot(x, quadWav[start-extra_space:end+extra_space], 'tab:green')
     axs[1,1].set_title("R-Cubic Spline Interpolation")
-    axs[1,1].plot(x, rCubeWav[start-extra_space:end+extra_space,0], 'tab:red')
+    axs[1,1].plot(x, rCubeWav[start-extra_space:end+extra_space], 'tab:red')
 
     # Multi Graph Comparison
     axs[2,0].set_title("Compare all splines")
-    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-quadWav[start-extra_space:end+extra_space,0], 'tab:green')
-    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-linearWav[start-extra_space:end+extra_space,0], 'tab:orange')
-    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-rCubeWav[start-extra_space:end+extra_space,0], 'tab:red')
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space]-quadWav[start-extra_space:end+extra_space], 'tab:green')
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space]-linearWav[start-extra_space:end+extra_space], 'tab:orange')
+    axs[2,0].plot(x, mainWav[start-extra_space:end+extra_space]-rCubeWav[start-extra_space:end+extra_space], 'tab:red')
 
     #resulting difference
     axs[2,1].set_title("Linear Spline Interpolation Difference")
-    axs[2,1].plot(x, mainWav[start-extra_space:end+extra_space,0]-linearWav[start-extra_space:end+extra_space,0], 'tab:orange')
+    axs[2,1].plot(x, mainWav[start-extra_space:end+extra_space]-linearWav[start-extra_space:end+extra_space], 'tab:orange')
     axs[3,0].set_title("Quadratic Spline Interpolation Difference")
-    axs[3,0].plot(x, mainWav[start-extra_space:end+extra_space,0]-quadWav[start-extra_space:end+extra_space,0], 'tab:green')
+    axs[3,0].plot(x, mainWav[start-extra_space:end+extra_space]-quadWav[start-extra_space:end+extra_space], 'tab:green')
     axs[3,1].set_title("R-Cubic Spline Interpolation Difference")
-    axs[3,1].plot(x, mainWav[start-extra_space:end+extra_space,0]-rCubeWav[start-extra_space:end+extra_space,0], 'tab:red')
+    axs[3,1].plot(x, mainWav[start-extra_space:end+extra_space]-rCubeWav[start-extra_space:end+extra_space], 'tab:red')
 
     for ax in axs.flat:
         ax.set(xlabel='Time', ylabel='Amplitude')
@@ -139,60 +141,32 @@ input_wav = 'NATEST24.wav'
 
 # Get the wave file data
 samplerate, wav = wavfile.read(input_wav)
+tempwav = np.zeros((wav.shape[0]))
+tempwav = wav[:,0]
+wav = tempwav
+print(wav)
 np.set_printoptions(formatter={'int':hex})
-print(f"sample rate      = {samplerate}")
-print(f"raw data (left)  = {wav[:, 0]}")
-print(f"raw data (right) = {wav[:, 1]}")
+print(f"sample rate  = {samplerate}")
+print(f"raw data     = {wav[:]}")
 
 print(f"""\nlooking at a single sample and the way we're reading in the
 data, threre might be extra 0's depending on the sample bit depth.
 .wav files are commonly 8, 16, or 24 bit ints or 32bit float.
 We'll avoid floats, so of the int types both 24's are stored
 as int32's in numpy. 
-For this file, samples are {type(wav[0,0])} internally\n""")
+For this file, samples are {type(wav[0])} internally\n""")
 
-# We need to pick a sample range at a random starting point to 
-# intentiaonally zero-out, the interpolation will act on the data before 
-# and after this range to give us a function that we can try to repair.
-#
-#  1 -|         ,-'''-.
-#     |      ,-'       `-.           
-#     |    ,'             `.
-#     |  ,'                 `.
-#     | /                     \
-#     |/                       \
-# ----+-------------------------\--------------------------
-#     |          __           __ \          __           /  __
-#     |          ||/2         ||  \        3||/2        /  2||
-#     |                            `.                 ,'
-#     |                              `.             ,'
-#     |                                `-.       ,-'
-# -1 -|                                   `-,,,-'
-#
-# So, here we could se the values in this sine to something like this, where
-# the values around the top of the sine wave get dropped to 0.
-#
-#  1 -|           
-#     |      ,-'        -.           
-#     |    ,'             `.
-#     |  ,'                 `.
-#     | /                     \
-#     |/                       \
-# ----+--------||||||||---------\--------------------------
-#     |          __           __ \          __           /  __
-#     |          ||/2         ||  \        3||/2        /  2||
-#     |                            `.                 ,'
-#     |                              `.             ,'
-#     |                                `-.       ,-'
-# -1 -|                                   `-,,,-'
-#
-# The goal would be to 'fix' the file to restore the sine wave.
-# -------------------------------------------------------------
-# get a random segment over which we want to interpolate
-# leaving enough room on both sides to 'learn' from
 zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-length_to_interpolate-samples_to_injest),1)
 zend = zstart + length_to_interpolate
-print(f"samples {zstart} to {zend}] will be replaced with the interploated values")
+print(f"samples {zstart} to {zend}] will be downsampled and interpolated")
+
+for i in range(wav.shape[0]-1, wav.shape[0]-1, -1):
+    wav[i,0] = wav[i,0] | or_val
+    if i==wav.shape[0]-(1+num_bits):
+        wav[i,0] = wav[i,0] & ~or_val
+
+div2interp = np.zeros((int(samples_to_injest/2)))
+
 
 linearWav = LinearInterpolate(samples_to_injest, zstart, zend)
 quadWav = QuadInterpolate(samples_to_injest, zstart, zend)
