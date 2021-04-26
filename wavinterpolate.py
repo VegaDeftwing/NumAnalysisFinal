@@ -15,12 +15,12 @@ from matplotlib import pyplot as plt
 # Important Variables
 #####################################################################################
 
-# number of samples that will be 0'd out and replaced with the interpolated 'guess'
-length_to_interpolate = 100
-# number of samples used to 'learn' the interpolation, half forwards, half backwards
+# number of samples that will be decimated and reconsturcted
 samples_to_injest = 200
+downsample_level = 8
 
 assert (samples_to_injest%2==0),"Samples to injest must be an even number!"
+assert (downsample_level%2==0),"Downsample level must be an even number!"
 
 #####################################################################################
 # DEFINE THE INTERPOLATION FUNCTIONS
@@ -41,48 +41,84 @@ assert (samples_to_injest%2==0),"Samples to injest must be an even number!"
 def LinearInterpolate(samples_to_injest, zstart, zend):
     print("Running Linear Spline Interpolation")
 
-    xp1 = np.arange(0,samples_to_injest/2,1)
-    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
-    xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
-    yp2 = wav[zend:int(zend + samples_to_injest/2)]
-    yp  = np.concatenate((yp1,yp2))
-    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    div2interp = np.zeros((int(samples_to_injest/downsample_level)))
+
+    i = zstart
+    j = 0
+    while i < zstart+samples_to_injest:
+        div2interp[j] = wav[i] 
+        i += downsample_level
+        j += 1
+
+    np.set_printoptions(formatter={'int':str})
+
+    xp = np.arange(zstart,zend,downsample_level)
+    yp = div2interp
+    print(xp.shape)
+    print(yp.shape)
+    xn = np.arange(zstart,zend-downsample_level,1)
+    print(xp)
+    print(xn)
+    print(div2interp)
     interp = interp1d(xp,yp, kind='linear')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend] = interp(xn)
+    lazyWav[zstart:zend-downsample_level] = interp(xn)
 
     return lazyWav
 
 def QuadInterpolate(samples_to_injest, zstart, zend):
     print("Running Quadratic Spline Interpolation")
 
-    xp1 = np.arange(0,samples_to_injest/2,1)
-    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
-    xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
-    yp2 = wav[zend:int(zend + samples_to_injest/2)]
-    yp  = np.concatenate((yp1,yp2))
-    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    div2interp = np.zeros((int(samples_to_injest/downsample_level)))
+
+    i = zstart
+    j = 0
+    while i < zstart+samples_to_injest:
+        div2interp[j] = wav[i] 
+        i += downsample_level
+        j += 1
+
+    np.set_printoptions(formatter={'int':str})
+
+    xp = np.arange(zstart,zend,downsample_level)
+    yp = div2interp
+    print(xp.shape)
+    print(yp.shape)
+    xn = np.arange(zstart,zend-downsample_level,1)
+    print(xp)
+    print(xn)
+    print(div2interp)
     interp = interp1d(xp,yp, kind='quadratic')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend] = interp(xn)
+    lazyWav[zstart:zend-downsample_level] = interp(xn)
 
     return lazyWav
 
 def RCubeInterpolate(samples_to_injest, zstart, zend):
-    print("Running R Cubic Spline Interpolation")
+    print("Running Cubic Spline Interpolation")
 
-    xp1 = np.arange(0,samples_to_injest/2,1)
-    xp2 = np.arange(length_to_interpolate+samples_to_injest,length_to_interpolate+samples_to_injest+samples_to_injest/2)
-    xp  = np.concatenate((xp1,xp2))
-    yp1 = wav[int(zstart - samples_to_injest/2):zstart]
-    yp2 = wav[zend:int(zend + samples_to_injest/2)]
-    yp  = np.concatenate((yp1,yp2))
-    xn = np.arange(length_to_interpolate/2,length_to_interpolate/2+length_to_interpolate,1)
+    div2interp = np.zeros((int(samples_to_injest/downsample_level)))
+
+    i = zstart
+    j = 0
+    while i < zstart+samples_to_injest:
+        div2interp[j] = wav[i] 
+        i += downsample_level
+        j += 1
+
+    np.set_printoptions(formatter={'int':str})
+
+    xp = np.arange(zstart,zend,downsample_level)
+    yp = div2interp
+    print(xp.shape)
+    print(yp.shape)
+    xn = np.arange(zstart,zend-downsample_level,1)
+    print(xp)
+    print(xn)
+    print(div2interp)
     interp = interp1d(xp,yp, kind='cubic')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend] = interp(xn)
+    lazyWav[zstart:zend-downsample_level] = interp(xn)
 
     return lazyWav
 
@@ -156,8 +192,8 @@ We'll avoid floats, so of the int types both 24's are stored
 as int32's in numpy. 
 For this file, samples are {type(wav[0])} internally\n""")
 
-zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-length_to_interpolate-samples_to_injest),1)
-zend = zstart + length_to_interpolate
+zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-samples_to_injest-samples_to_injest),1)
+zend = zstart + samples_to_injest
 print(f"samples {zstart} to {zend}] will be downsampled and interpolated")
 
 for i in range(wav.shape[0]-1, wav.shape[0]-1, -1):
@@ -165,14 +201,11 @@ for i in range(wav.shape[0]-1, wav.shape[0]-1, -1):
     if i==wav.shape[0]-(1+num_bits):
         wav[i,0] = wav[i,0] & ~or_val
 
-div2interp = np.zeros((int(samples_to_injest/2)))
-
-
 linearWav = LinearInterpolate(samples_to_injest, zstart, zend)
 quadWav = QuadInterpolate(samples_to_injest, zstart, zend)
 rCubeWav = RCubeInterpolate(samples_to_injest, zstart, zend)
 
-PlotWavs(length_to_interpolate, zstart, zend, wav, linearWav, quadWav, rCubeWav)
+PlotWavs(samples_to_injest, zstart, zend, wav, linearWav, quadWav, rCubeWav)
 
 #TODO we need some sort of evaluation metric, maybe a mix of looking at the difference between the waves,
 # the integral, and something to account for phase shift?
