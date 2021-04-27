@@ -9,6 +9,7 @@ from rich import print
 import pretty_errors
 import random
 from matplotlib import pyplot as plt 
+import math
 
 
 #####################################################################################
@@ -90,11 +91,13 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
     # for i in range(0,downsample_level):
     #     result[i] = y.subs(x,i)
 
-    for i in range(zstart+downsample_level,zend):
+    for i in range(zstart,zend-downsample_level):
         # print(y[((i-zstart)//downsample_level)-1])
         # print(i)
         # print((i-zstart)//downsample_level)
-        lazyWav[i] = y[((i-zstart)//downsample_level)-1].subs(x,(i))
+        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
+        print("---------")
+        print(i)
         print(lazyWav[i])
 
     return lazyWav
@@ -121,9 +124,31 @@ def QuadInterpolate(samples_to_injest, zstart, zend):
     print(xp)
     print(xn)
     print(div2interp)
-    interp = interp1d(xp,yp, kind='linear')
+    # interp = interp1d(xp,yp, kind='linear')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend-downsample_level] = interp(xn)
+    # lazyWav[zstart:zend-downsample_level] = interp(xn)
+
+    # return lazyWav
+
+    x = sympy.symbols('x')
+
+    y = []
+    z = []
+    z.append(0)
+    
+    print(len(xp))
+    
+    for i in range(0,len(xp)-1):
+        z.append ((-1)*z[i] + 2*((yp[i+1]-yp[i])/(xp[i+1]-xp[i])))
+        
+    for i in range(0, len(xp)-1):
+        y.append ((((z[i+1]-z[i])/(2*(xp[i+1]-xp[i])))*(x-xp[i])**2)+z[i]*(x-xp[i])+yp[i])
+
+    for i in range(zstart,zend-downsample_level):
+        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
+        print("---------")
+        print(i)
+        print(lazyWav[i])
 
     return lazyWav
 
@@ -149,9 +174,53 @@ def RCubeInterpolate(samples_to_injest, zstart, zend):
     print(xp)
     print(xn)
     print(div2interp)
-    interp = interp1d(xp,yp, kind='cubic')
+    #interp = interp1d(xp,yp, kind='cubic')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend-downsample_level] = interp(xn)
+    #lazyWav[zstart:zend-downsample_level] = interp(xn)
+    
+    x = sympy.symbols('x')
+
+    y = []
+    b = []
+    c = np.zeros(len(xp))
+    d = []
+    alp = []
+    r = 2+math.sqrt(3)
+    h = downsample_level
+    
+    b.append(3*r/(2*(h**2))*(yp[1]-yp[0]))
+    for i in range(1, len(xp)-1):
+        b.append((3/(h**2))*(yp[i-1]-2*yp[i]+yp[i+1]))
+    b.append(0)
+    
+    alp.append(b[0]/r)
+    for i in range(1, len(xp)-1):
+        alp.append((b[i]-alp[i-1])/r)
+    alp.append(0)
+    
+    for i in reversed(range(0,len(xp)-1)):
+        print(i)
+        c[i] = alp[i]-c[i+1]/r
+        print(c[i])
+    
+    for i in range(0,len(xp)-1):
+        d.append((1/(3*h))*(c[i+1]-c[i]))
+        print(d[i])
+    
+
+    for i in range(0,len(xp)-1):
+        y.append (alp[i]+b[i]*x+c[i]*(x**2)+d[i]*(x**3))
+
+    for i in range(zstart,zend-downsample_level):
+        # print(y[((i-zstart)//downsample_level)-1])
+        # print(i)
+        # print((i-zstart)//downsample_level)
+        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
+        print("---------")
+        print(i)
+        print(lazyWav[i])
+    
+    
 
     return lazyWav
 
