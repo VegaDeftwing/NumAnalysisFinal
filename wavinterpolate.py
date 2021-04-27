@@ -17,7 +17,7 @@ from matplotlib import pyplot as plt
 
 # number of samples that will be decimated and reconsturcted
 samples_to_injest = 200
-downsample_level = 8
+downsample_level = 2
 
 assert (samples_to_injest%2==0),"Samples to injest must be an even number!"
 assert (downsample_level%2==0),"Downsample level must be an even number!"
@@ -50,7 +50,7 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
         i += downsample_level
         j += 1
 
-    np.set_printoptions(formatter={'int':str})
+    # np.set_printoptions(formatter={'int':str})
 
     xp = np.arange(zstart,zend,downsample_level)
     yp = div2interp
@@ -60,9 +60,41 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
     print(xp)
     print(xn)
     print(div2interp)
-    interp = interp1d(xp,yp, kind='linear')
+    # interp = interp1d(xp,yp, kind='linear')
     lazyWav = np.copy(wav)
-    lazyWav[zstart:zend-downsample_level] = interp(xn)
+    # lazyWav[zstart:zend-downsample_level] = interp(xn)
+
+    # return lazyWav
+
+    x = sympy.symbols('x')
+
+    y = []
+
+    for i in range(1,len(xp)):
+        y.append (((xp[i] - x) / (xp[i] - xp[i-1]))*yp[i-1] + ((x - xp[i-1])/(xp[i] - xp[i-1]))*yp[i])
+        # print(y[i-1])
+
+    print("--------------------------------")
+    print(y[0])
+    print(y[1])
+    print(y[2])
+    print("---------")
+    print(xp[0])
+    print(xp[1])
+    print(xp[2])
+    print("---------")
+    print(yp[0:10])
+
+    # print(len(y))
+
+    # for i in range(0,downsample_level):
+    #     result[i] = y.subs(x,i)
+
+    for i in range(zstart,zend):
+        # print(y[((i-zstart)//downsample_level)-1])
+        # print(i)
+        # print((i-zstart)//downsample_level)
+        lazyWav[i] = y[((i-zstart)//downsample_level)-1].subs(x,(i))
 
     return lazyWav
 
@@ -88,7 +120,7 @@ def QuadInterpolate(samples_to_injest, zstart, zend):
     print(xp)
     print(xn)
     print(div2interp)
-    interp = interp1d(xp,yp, kind='quadratic')
+    interp = interp1d(xp,yp, kind='linear')
     lazyWav = np.copy(wav)
     lazyWav[zstart:zend-downsample_level] = interp(xn)
 
