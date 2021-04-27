@@ -74,27 +74,28 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
         y.append (((xp[i] - x) / (xp[i] - xp[i-1]))*yp[i-1] + ((x - xp[i-1])/(xp[i] - xp[i-1]))*yp[i])
         # print(y[i-1])
 
-    print("--------------------------------")
-    print(y[0])
-    print(y[1])
-    print(y[2])
-    print("---------")
-    print(xp[0])
-    print(xp[1])
-    print(xp[2])
-    print("---------")
-    print(yp[0:10])
+    # print("--------------------------------")
+    # print(y[0])
+    # print(y[1])
+    # print(y[2])
+    # print("---------")
+    # print(xp[0])
+    # print(xp[1])
+    # print(xp[2])
+    # print("---------")
+    # print(yp[0:10])
 
     # print(len(y))
 
     # for i in range(0,downsample_level):
     #     result[i] = y.subs(x,i)
 
-    for i in range(zstart,zend):
+    for i in range(zstart+downsample_level,zend):
         # print(y[((i-zstart)//downsample_level)-1])
         # print(i)
         # print((i-zstart)//downsample_level)
         lazyWav[i] = y[((i-zstart)//downsample_level)-1].subs(x,(i))
+        print(lazyWav[i])
 
     return lazyWav
 
