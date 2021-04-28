@@ -1,15 +1,13 @@
 #!/bin/python
 import sympy
 from scipy.io import wavfile
-import scipy.io
-from scipy.interpolate import CubicSpline
-from scipy.interpolate import interp1d
 import numpy as np
 from rich import print
 import pretty_errors
 import random
 from matplotlib import pyplot as plt 
 import math
+import soundfile as sf
 
 
 #####################################################################################
@@ -17,7 +15,7 @@ import math
 #####################################################################################
 
 # number of samples that will be decimated and reconsturcted
-samples_to_injest = 200
+samples_to_injest = 50000
 downsample_level = 2
 
 assert (samples_to_injest%2==0),"Samples to injest must be an even number!"
@@ -51,16 +49,10 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
         i += downsample_level
         j += 1
 
-    # np.set_printoptions(formatter={'int':str})
-
     xp = np.arange(zstart,zend,downsample_level)
     yp = div2interp
     xn = np.arange(zstart,zend-downsample_level,1)
-    # interp = interp1d(xp,yp, kind='linear')
-    lazyWav = np.copy(wav)
-    # lazyWav[zstart:zend-downsample_level] = interp(xn)
-
-    # return lazyWav
+    linearWav = np.copy(wav)
 
     x = sympy.symbols('x')
 
@@ -68,34 +60,11 @@ def LinearInterpolate(samples_to_injest, zstart, zend):
 
     for i in range(1,len(xp)):
         y.append (((xp[i] - x) / (xp[i] - xp[i-1]))*yp[i-1] + ((x - xp[i-1])/(xp[i] - xp[i-1]))*yp[i])
-        # print(y[i-1])
-
-    # print("--------------------------------")
-    # print(y[0])
-    # print(y[1])
-    # print(y[2])
-    # print("---------")
-    # print(xp[0])
-    # print(xp[1])
-    # print(xp[2])
-    # print("---------")
-    # print(yp[0:10])
-
-    # print(len(y))
-
-    # for i in range(0,downsample_level):
-    #     result[i] = y.subs(x,i)
 
     for i in range(zstart,zend-downsample_level):
-        # print(y[((i-zstart)//downsample_level)-1])
-        # print(i)
-        # print((i-zstart)//downsample_level)
-        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
-        #print("---------")
-        #print(i)
-        #print(lazyWav[i])
+        linearWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
 
-    return lazyWav
+    return linearWav
 
 def QuadInterpolate(samples_to_injest, zstart, zend):
     print("Running Quadratic Spline Interpolation")
@@ -114,18 +83,13 @@ def QuadInterpolate(samples_to_injest, zstart, zend):
     xp = np.arange(zstart,zend,downsample_level)
     yp = div2interp
     xn = np.arange(zstart,zend-downsample_level,1)
-    # interp = interp1d(xp,yp, kind='linear')
-    lazyWav = np.copy(wav)
-    #lazyWav[zstart:zend-downsample_level] = interp(xn)
-
-    # return lazyWav
+    quadWav = np.copy(wav)
 
     x = sympy.symbols('x')
 
     y = []
     z = []
     z.append(0)
-    
     
     for i in range(0,len(xp)-1):
         z.append ((-1)*z[i] + 2*((yp[i+1]-yp[i])/(xp[i+1]-xp[i])))
@@ -134,9 +98,9 @@ def QuadInterpolate(samples_to_injest, zstart, zend):
         y.append ((((z[i+1]-z[i])/(2*(xp[i+1]-xp[i])))*(x-xp[i])**2)+z[i]*(x-xp[i])+yp[i])
 
     for i in range(zstart,zend-downsample_level):
-        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
+        quadWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i))
 
-    return lazyWav
+    return quadWav
 
 def RCubeInterpolate(samples_to_injest, zstart, zend):
     print("Running Cubic Spline Interpolation")
@@ -154,15 +118,7 @@ def RCubeInterpolate(samples_to_injest, zstart, zend):
 
     xp = np.arange(zstart,zend,downsample_level)
     yp = div2interp
-    #print(xp.shape)
-    #print(yp.shape)
-    xn = np.arange(zstart,zend-downsample_level,1)
-    #print(xp)
-    #print(xn)
-    #print(div2interp)
-    #interp = interp1d(xp,yp, kind='cubic')
-    lazyWav = np.copy(wav)
-    #lazyWav[zstart:zend-downsample_level] = interp(xn)
+    rCubeWav = np.copy(wav)
     
     x = sympy.symbols('x')
     
@@ -180,48 +136,27 @@ def RCubeInterpolate(samples_to_injest, zstart, zend):
         e.append((3/(h**2))*(yp[i-1]-2*yp[i]+yp[i+1]))
     e.append(0)
     
-    print("e0:_____")
-    print(e[0])
     alp.append(e[0]/r)
     for i in range(1, len(xp)-1):
         alp.append((e[i]-alp[i-1])/r)
     alp.append(0)
     
     for i in reversed(range(0,len(xp)-1)):
-        #print(i)
         c[i] = alp[i]-(c[i+1]/r)
-        #print(c[i])
         
     for i in range(0,len(xp)-1):
         b.append ((yp[i+1]-yp[i])/h-((2*c[i]+c[i+1])*h)/3)
         
-    
-        
-     
     for i in range(0,len(xp)-1):
         d.append((1/(3*h))*(c[i+1]-c[i]))
-        #print(d[i])
-    
 
     for i in range(0,len(xp)-1):
         y.append (yp[i]+b[i]*x+c[i]*(x**2)+d[i]*(x**3))
 
     for i in range(zstart,zend-downsample_level):
-        # print(y[((i-zstart)//downsample_level)-1])
-        # print(i)
-        # print((i-zstart)//downsample_level)
-        lazyWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i % downsample_level))
-        #temp = y[((i-zstart)//downsample_level)].subs(x,(i))
-        # print("temp=",end='')
-        #temp = temp/1
-        #lazyWav[i] = temp
-        #print("---------")
-        #print(i)
-        #print(lazyWav[i])
-    
-    
-
-    return lazyWav
+        rCubeWav[i] = y[((i-zstart)//downsample_level)].subs(x,(i % downsample_level))
+        
+    return rCubeWav
 
 #####################################################################################
 # MAIN
@@ -278,6 +213,7 @@ input_wav = 'NATEST24.wav'
 
 # Get the wave file data
 samplerate, wav = wavfile.read(input_wav)
+print(samplerate)
 tempwav = np.zeros((wav.shape[0]))
 tempwav = wav[:,0]
 wav = tempwav
@@ -293,7 +229,8 @@ We'll avoid floats, so of the int types both 24's are stored
 as int32's in numpy. 
 For this file, samples are {type(wav[0])} internally\n""")
 
-zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-samples_to_injest-samples_to_injest),1)
+# zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-samples_to_injest-samples_to_injest),1)
+zstart = 3801749
 zend = zstart + samples_to_injest
 print(f"samples {zstart} to {zend}] will be downsampled and interpolated")
 
@@ -302,11 +239,21 @@ for i in range(wav.shape[0]-1, wav.shape[0]-1, -1):
     if i==wav.shape[0]-(1+num_bits):
         wav[i,0] = wav[i,0] & ~or_val
 
-linearWav = LinearInterpolate(samples_to_injest, zstart, zend)
-quadWav = QuadInterpolate(samples_to_injest, zstart, zend)
-rCubeWav = RCubeInterpolate(samples_to_injest, zstart, zend)
+sf.write("InputWaveSegment.wav", wav[zstart:zend], samplerate, 'PCM_24')
 
-PlotWavs(samples_to_injest, zstart, zend, wav, linearWav, quadWav, rCubeWav)
+linearWav = LinearInterpolate(samples_to_injest, zstart, zend)
+sf.write("outputLinear-2.wav", linearWav[zstart:zend], samplerate, 'PCM_24')
+print("Linear Output .wav Written!")
+quadWav = QuadInterpolate(samples_to_injest, zstart, zend)
+sf.write("outputQuad-2.wav", quadWav[zstart:zend], samplerate, 'PCM_24')
+print("Quadratic Output .wav Written!")
+rCubeWav = RCubeInterpolate(samples_to_injest, zstart, zend)
+sf.write("outputCube-2.wav", rCubeWav[zstart:zend], samplerate, 'PCM_24')
+print("Cubic Output .wav Written!")
+
+print("finished!")
+
+# PlotWavs(samples_to_injest, zstart, zend, wav, linearWav, quadWav, rCubeWav)
 
 #TODO we need some sort of evaluation metric, maybe a mix of looking at the difference between the waves,
 # the integral, and something to account for phase shift?
