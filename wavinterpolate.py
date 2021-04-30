@@ -204,7 +204,6 @@ def PlotWavs(length, start, end, mainWav, linearWav, quadWav, rCubeWav):
 
 
 def SaveWavs(linearWav,quadWav,rCubeWav):
-    #TODO make something to save the modified .wav files
     print("You can now go listen to the file to determine the quality of interpolation")
 
 
@@ -229,8 +228,8 @@ We'll avoid floats, so of the int types both 24's are stored
 as int32's in numpy. 
 For this file, samples are {type(wav[0])} internally\n""")
 
-# zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-samples_to_injest-samples_to_injest),1)
-zstart = 3801749
+zstart = random.randrange(samples_to_injest/2,(wav.shape[0]-samples_to_injest-samples_to_injest),1)
+#zstart = 3801749
 zend = zstart + samples_to_injest
 print(f"samples {zstart} to {zend}] will be downsampled and interpolated")
 
@@ -242,18 +241,15 @@ for i in range(wav.shape[0]-1, wav.shape[0]-1, -1):
 sf.write("InputWaveSegment.wav", wav[zstart:zend], samplerate, 'PCM_24')
 
 linearWav = LinearInterpolate(samples_to_injest, zstart, zend)
-sf.write("outputLinear-2.wav", linearWav[zstart:zend], samplerate, 'PCM_24')
+sf.write("outputLinear.wav", linearWav[zstart:zend], samplerate, 'PCM_24')
 print("Linear Output .wav Written!")
 quadWav = QuadInterpolate(samples_to_injest, zstart, zend)
-sf.write("outputQuad-2.wav", quadWav[zstart:zend], samplerate, 'PCM_24')
+sf.write("outputQuad.wav", quadWav[zstart:zend], samplerate, 'PCM_24')
 print("Quadratic Output .wav Written!")
 rCubeWav = RCubeInterpolate(samples_to_injest, zstart, zend)
-sf.write("outputCube-2.wav", rCubeWav[zstart:zend], samplerate, 'PCM_24')
+sf.write("outputCube.wav", rCubeWav[zstart:zend], samplerate, 'PCM_24')
 print("Cubic Output .wav Written!")
 
 print("finished!")
 
-# PlotWavs(samples_to_injest, zstart, zend, wav, linearWav, quadWav, rCubeWav)
-
-#TODO we need some sort of evaluation metric, maybe a mix of looking at the difference between the waves,
-# the integral, and something to account for phase shift?
+PlotWavs(samples_to_injest, zstart, zend, wav, linearWav, quadWav, rCubeWav)
